@@ -11,7 +11,10 @@
 		this.$li = $(this.$div.selector + " ul li");
 		this.$options = options;
 		this.init();
-		this.$timer = setInterval($.proxy(function(){this.slide(options.rotation, options.slide)}, this), this.$options.interval);
+		this.initEventHandlers();
+		
+		this.$timer = this.play();
+
 	};
 	
 	Hoop.defaults = {
@@ -22,8 +25,7 @@
 	Hoop.prototype = {
 		init: function(){
 			this.initCss();
-			var scope = this;
-			$(window).resize($.proxy(this.initCss, scope));
+			
 			if(this.$options.rotation === "left"){
 				$(this.$li.selector + ":first").before($(this.$li.selector + ":last"));
 			} else{
@@ -65,7 +67,15 @@
 				"width": width,
 				"height": height,
 			});
+			
+			this.$div.append("<input type='image' src='images/custom>click me </button>");			
 
+		},
+		
+		initEventHandlers: function(){
+			var scope = this;
+			this.$ul.hover($.proxy(this.pause, this), $.proxy(this.play, this));
+			$(window).resize($.proxy(this.initCss, scope));
 		},
 		
 		slide: function(direction, callback){
@@ -88,7 +98,20 @@
 			if(callback != undefined){
 				callback();
 			}
+		},
+		
+		pause: function(){
+			this.$timer = clearInterval(this.$timer);
+			return this.$timer;
+		},
+		
+		play: function(){
+			this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
+			return this.$timer;
 		}
+		
+		
+
 		
 	};
 }(jQuery));
