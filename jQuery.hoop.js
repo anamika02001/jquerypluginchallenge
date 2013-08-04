@@ -24,6 +24,8 @@
 	
 	Hoop.prototype = {
 		init: function(){
+			this.$div.append("<input type='image' class = 'previous' src='images/leftArrow.png' alt='Previous'/>");
+			this.$div.append("<input type='image' class = 'next' src='images/rightArrow.png' alt='Next'/>");	
 			this.initCss();
 			
 			if(this.$options.rotation === "left"){
@@ -37,13 +39,16 @@
 		initCss: function(){
 			var width, height;
 			if($(window).width() >= 600){
-				width = "600px";				
-				height = "300px";
+				width = "600";				
+				height = "300";
+				buttonSize = "30";
+				
 			} 
 
 			if($(window).width() < 600){
 				width = 0.949 * $(window).width();
 				height = 0.594 * width;
+				buttonSize = 0.05 * width;
 			}
 
 			this.$div.css({
@@ -64,18 +69,37 @@
 				"margin": "0px",
 				"float": "left",
 				"background": "transparent",
-				"width": width,
-				"height": height,
+				"width": width + "px",
+				"height": height + "px",
 			});
+
+
 			
-			this.$div.append("<input type='image' src='images/custom>click me </button>");			
+			$(this.$div.selector + " input.previous").css({
+				"position": "relative",
+				"top": -(height/2 + buttonSize/2) + "px",
+				"width": buttonSize + "px",
+				"height": buttonSize + "px",
+				"z-index": "2",
+			});	
+			$(this.$div.selector + " input.next").css({
+				"position": "relative",
+				"top": -(height/2 + buttonSize/2) + "px",
+				"right": -(width - buttonSize*2) + "px",
+				"width": buttonSize + "px",
+				"height": buttonSize + "px",
+				"z-index": "2",
+			});			
 
 		},
 		
 		initEventHandlers: function(){
 			var scope = this;
-			this.$ul.hover($.proxy(this.pause, this), $.proxy(this.play, this));
+			this.$div.hover($.proxy(this.pause, this), $.proxy(this.play, this));
 			$(window).resize($.proxy(this.initCss, scope));
+			$(this.$div.selector + " input.next").click($.proxy(this.next, this));
+			$(this.$div.selector + " input.previous").click($.proxy(this.previous, this));
+			
 		},
 		
 		slide: function(direction, callback){
@@ -108,10 +132,14 @@
 		play: function(){
 			this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
 			return this.$timer;
-		}
+		},
 		
+		next: function(){
+			this.slide("left");
+		},
 		
-
-		
+		previous: function(){
+			this.slide("right");
+		},
 	};
 }(jQuery));
