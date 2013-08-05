@@ -13,8 +13,8 @@
 		this.init();
 		this.initEventHandlers();
 		
-		this.$timer = this.play();
-
+		this.$timer = this.playOnHover();
+	//this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
 	};
 	
 	Hoop.defaults = {
@@ -26,6 +26,9 @@
 		init: function(){
 			this.$div.append("<input type='image' class = 'previous' src='images/leftArrow.png' alt='Previous'/>");
 			this.$div.append("<input type='image' class = 'next' src='images/rightArrow.png' alt='Next'/>");	
+			this.$div.append("<input type='image' class = 'pause' src='images/pause.png' alt='Pause'/>");
+			this.$div.append("<input type='image' class = 'play' src='images/play.png' alt='Play'/>");
+			$(this.$div.selector + " input.play").hide();
 			this.initCss();
 			
 			if(this.$options.rotation === "left"){
@@ -54,7 +57,10 @@
 			this.$div.css({
 				"float": "left",
 				"width": width,
-				"overflow": "hidden"
+				"overflow": "hidden",
+				"border" : "2px solid",
+				"background-color": "black",
+				
 			});
 			this.$ul.css({
 				"left": "0px",
@@ -77,6 +83,7 @@
 			
 			$(this.$div.selector + " input.previous").css({
 				"position": "relative",
+				"text-align": "center",
 				"top": -(height/2 + buttonSize/2) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
@@ -89,20 +96,46 @@
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
 				"z-index": "2",
-			});			
+			});		
+			$(this.$div.selector + " input.pause").css({
+				"position": "relative",
+				"top": -(buttonSize*2.5) + "px",
+				"right": -(width/2 - buttonSize*2) + "px",
+				"width": buttonSize + "px",
+				"height": buttonSize + "px",
+				"z-index": "2",
+			});	
+			$(this.$div.selector + " input.play").css({
+				"position": "relative",
+				"top": -(buttonSize*2.5) + "px",
+				"right": -(width/2 - buttonSize*2) + "px",
+				"width": buttonSize + "px",
+				"height": buttonSize + "px",
+				"z-index": "2",
+			});		
 
 		},
 		
 		initEventHandlers: function(){
 			var scope = this;
-			this.$div.hover($.proxy(this.pause, this), $.proxy(this.play, this));
+			this.$timer = this.$div.hover($.proxy(this.pauseOnHover,this), $.proxy(this.playOnHover,this));
+			
 			$(window).resize($.proxy(this.initCss, scope));
+			
 			$(this.$div.selector + " input.next").click($.proxy(this.next, this));
 			$(this.$div.selector + " input.previous").click($.proxy(this.previous, this));
+			
+			this.$timer = $(this.$div.selector + " input.pause").click($.proxy(this.pauseOnButton,this));
+			this.$timer = $(this.$div.selector + " input.play").click($.proxy(this.playOnButton,this));
 			
 		},
 		
 		slide: function(direction, callback){
+			//if(this.$paused === true){
+			//	return;
+			//}
+			//var childWidth = this.$li.children().get(0);
+			//alert(childWidth);
 			var width = this.$li.outerWidth();
 			if(direction === "right"){
 				var left = parseInt(this.$ul.css("left")) + width;
@@ -117,21 +150,59 @@
 				} else {
 					$(this.$li.selector + ":last").after($(this.$li.selector + ":first"));
 				}
-				this.$ul.css({"left": "0px"});
+				this.$ul.css({"left": "0px", "margin-left":"auto", "margin-right":"auto"});
 			}, this));
 			if(callback != undefined){
 				callback();
 			}
 		},
 		
-		pause: function(){
+		pauseOnHover: function(){
+			this.$hovered = true;
 			this.$timer = clearInterval(this.$timer);
+			if(this.$paused === true){
+				$(this.$div.selector + " input.pause").hide();
+				$(this.$div.selector + " input.play").show();
+			}else{
+				$(this.$div.selector + " input.pause").show();
+				$(this.$div.selector + " input.play").hide();
+			}
+			$(this.$div.selector + " input.next").show();
+			$(this.$div.selector + " input.previous").show();
 			return this.$timer;
 		},
 		
-		play: function(){
-			this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
-			return this.$timer;
+		playOnHover: function(){
+			$(this.$div.selector + " input.next").hide();
+			$(this.$div.selector + " input.previous").hide();
+			$(this.$div.selector + " input.pause").hide();
+			$(this.$div.selector + " input.play").hide();
+			if(this.$paused !== true)
+			{
+				this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
+				return this.$timer;
+				this.$hovered = false;
+			}
+			return undefined;
+		},
+		
+		pauseOnButton: function(){
+				this.$paused = true;
+				$(this.$div.selector + " input.pause").hide();
+				$(this.$div.selector + " input.play").show();
+				this.$timer = clearInterval(this.$timer);
+				return this.$timer;
+		},
+		
+		playOnButton: function(){
+		
+				this.$paused = false;
+				$(this.$div.selector + " input.play").hide();
+				$(this.$div.selector + " input.pause").show();
+				if(this.$hovered !== true){
+					this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
+				}
+				return this.$timer;
 		},
 		
 		next: function(){
@@ -141,5 +212,6 @@
 		previous: function(){
 			this.slide("right");
 		},
+
 	};
 }(jQuery));
