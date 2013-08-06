@@ -10,6 +10,12 @@
 		this.$ul = $(this.$div.selector + " ul");
 		this.$li = $(this.$div.selector + " ul li");
 		this.$options = options;
+		this.$maxSize = this.$ul.children().size();
+		if(this.$options.rotation === "right"){
+			this.$progressBarIterator = 2;
+		}else{
+			this.$progressBarIterator = 0;
+		}
 		this.init();
 		this.initEventHandlers();
 		
@@ -24,13 +30,21 @@
 	
 	Hoop.prototype = {
 		init: function(){
+			
+			//this.$div.progressbar( "option", { disabled: true } );
 			this.$div.append("<input type='image' class = 'previous' src='images/leftArrow.png' alt='Previous'/>");
 			this.$div.append("<input type='image' class = 'next' src='images/rightArrow.png' alt='Next'/>");	
 			this.$div.append("<input type='image' class = 'pause' src='images/pause.png' alt='Pause'/>");
 			this.$div.append("<input type='image' class = 'play' src='images/play.png' alt='Play'/>");
+			//this.$div.append("<input type='image' class = 'fullscreen' src='images/fullscreen.png' alt='Fullscreen'/>");
+			this.$div.append("<div class='progressBar'></div>");
+
+			
 			$(this.$div.selector + " input.play").hide();
 			this.initCss();
-			
+			$(this.$div.selector + " div.progressBar").progressbar();
+			$(this.$div.selector + " div.progressBar").progressbar( "option", "max", this.$maxSize);
+			//$(this.$div.selector + "div.progressBar").progressbar({"value":"70"});
 			if(this.$options.rotation === "left"){
 				$(this.$li.selector + ":first").before($(this.$li.selector + ":last"));
 			} else{
@@ -55,11 +69,13 @@
 			}
 
 			this.$div.css({
+				"position":"relative",
 				"float": "left",
 				"width": width,
+				"height": height,
 				"overflow": "hidden",
 				"border" : "2px solid",
-				"background-color": "black",
+
 				
 			});
 			this.$ul.css({
@@ -82,38 +98,59 @@
 
 			
 			$(this.$div.selector + " input.previous").css({
-				"position": "relative",
-				"text-align": "center",
-				"top": -(height/2 + buttonSize/2) + "px",
+				"position": "absolute",
+				//"text-align": "center",
+				"left": "0px",
+				"float": "left",
+				"top": (height/2) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
 				"z-index": "2",
 			});	
 			$(this.$div.selector + " input.next").css({
-				"position": "relative",
-				"top": -(height/2 + buttonSize/2) + "px",
-				"right": -(width - buttonSize*2) + "px",
+				"position": "absolute",
+				//"text-align": "center",
+				"float": "left",
+				"top": height/2 + "px",
+				"left": (width - buttonSize) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
 				"z-index": "2",
 			});		
 			$(this.$div.selector + " input.pause").css({
-				"position": "relative",
-				"top": -(buttonSize*2.5) + "px",
-				"right": -(width/2 - buttonSize*2) + "px",
+				"position": "absolute",
+				"float": "left",
+				"top": height*4/5 + "px",
+				"left": (width/2) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
 				"z-index": "2",
 			});	
 			$(this.$div.selector + " input.play").css({
-				"position": "relative",
-				"top": -(buttonSize*2.5) + "px",
-				"right": -(width/2 - buttonSize*2) + "px",
+				"position": "absolute",
+				"float": "left",
+				"top": height*4/5 + "px",
+				"left": (width/2) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
 				"z-index": "2",
-			});		
-
+			});	
+			$(this.$div.selector + " div.progressBar").css({
+				"position": "absolute",
+				"top": (height*0.89 ) + "px",
+				"z-index": "3",
+				"height": "5px",
+				"width" : width + "px",
+			});
+		/*	$(this.$div.selector + " input.fullscreen").css({
+				"position": "absolute",
+				"top": (height - buttonSize) + "px",
+				"left": (width - buttonSize) + "px",
+				"width": buttonSize + "px",
+				"height": buttonSize + "px",
+				"z-index": "2",
+			});*/
+			
 		},
 		
 		initEventHandlers: function(){
@@ -124,6 +161,7 @@
 			
 			$(this.$div.selector + " input.next").click($.proxy(this.next, this));
 			$(this.$div.selector + " input.previous").click($.proxy(this.previous, this));
+			$(this.$div.selector + " input.fullscreen").click($.proxy(this.fullscreen, this));
 			
 			this.$timer = $(this.$div.selector + " input.pause").click($.proxy(this.pauseOnButton,this));
 			this.$timer = $(this.$div.selector + " input.play").click($.proxy(this.playOnButton,this));
@@ -131,26 +169,40 @@
 		},
 		
 		slide: function(direction, callback){
-			//if(this.$paused === true){
-			//	return;
-			//}
-			//var childWidth = this.$li.children().get(0);
-			//alert(childWidth);
+			
+			
 			var width = this.$li.outerWidth();
 			if(direction === "right"){
 				var left = parseInt(this.$ul.css("left")) + width;
 			} else {
 				var left = parseInt(this.$ul.css("left")) - width;
 			}
+			
 			$(this.$ul.selector + ":not(:animated)").animate({"left": left}, 
 			this.$interval > 1000 ? this.$interval - 1000 : this.$interval, 
 			$.proxy(function(){
+				
 				if(direction === "right"){
+									
+					
+					this.$progressBarIterator -= 1;
+					if(this.$progressBarIterator < 1){
+						this.$progressBarIterator = this.$maxSize;
+					}
 					$(this.$li.selector + ":first").before($(this.$li.selector + ":last"));
+					
 				} else {
+					//alert(this.$li.index());
 					$(this.$li.selector + ":last").after($(this.$li.selector + ":first"));
+					
+					
+					this.$progressBarIterator += 1;
+					if(this.$progressBarIterator > this.$maxSize){
+						this.$progressBarIterator = 1;
+					}
 				}
 				this.$ul.css({"left": "0px", "margin-left":"auto", "margin-right":"auto"});
+				$(this.$div.selector + " div.progressBar").progressbar({value: this.$progressBarIterator});
 			}, this));
 			if(callback != undefined){
 				callback();
@@ -161,22 +213,24 @@
 			this.$hovered = true;
 			this.$timer = clearInterval(this.$timer);
 			if(this.$paused === true){
-				$(this.$div.selector + " input.pause").hide();
-				$(this.$div.selector + " input.play").show();
+				$(this.$div.selector + " input.pause").css({"display": "none"});
+				$(this.$div.selector + " input.play").css({"display": "block"});
 			}else{
-				$(this.$div.selector + " input.pause").show();
-				$(this.$div.selector + " input.play").hide();
+				$(this.$div.selector + " input.pause").css({"display": "block"});
+				$(this.$div.selector + " input.play").css({"display": "none"});
 			}
-			$(this.$div.selector + " input.next").show();
-			$(this.$div.selector + " input.previous").show();
+			$(this.$div.selector + " input.next").css({"display": "block"});
+			$(this.$div.selector + " input.previous").css({"display": "block"});
+			$(this.$div.selector + " div.progressBar").css({"display": "block"});
 			return this.$timer;
 		},
 		
 		playOnHover: function(){
-			$(this.$div.selector + " input.next").hide();
-			$(this.$div.selector + " input.previous").hide();
-			$(this.$div.selector + " input.pause").hide();
-			$(this.$div.selector + " input.play").hide();
+			$(this.$div.selector + " input.next").css({"display": "none"});
+			$(this.$div.selector + " input.previous").css({"display": "none"});
+			$(this.$div.selector + " input.pause").css({"display": "none"});
+			$(this.$div.selector + " input.play").css({"display": "none"});
+			$(this.$div.selector + " div.progressBar").css({"display": "block"});
 			if(this.$paused !== true)
 			{
 				this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
@@ -188,8 +242,8 @@
 		
 		pauseOnButton: function(){
 				this.$paused = true;
-				$(this.$div.selector + " input.pause").hide();
-				$(this.$div.selector + " input.play").show();
+				$(this.$div.selector + " input.pause").css({"display": "none"});
+				$(this.$div.selector + " input.play").css({"display": "block"});
 				this.$timer = clearInterval(this.$timer);
 				return this.$timer;
 		},
@@ -197,8 +251,8 @@
 		playOnButton: function(){
 		
 				this.$paused = false;
-				$(this.$div.selector + " input.play").hide();
-				$(this.$div.selector + " input.pause").show();
+				$(this.$div.selector + " input.play").css({"display": "none"});
+				$(this.$div.selector + " input.pause").css({"display": "block"});
 				if(this.$hovered !== true){
 					this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
 				}
@@ -210,8 +264,12 @@
 		},
 		
 		previous: function(){
+			
 			this.slide("right");
 		},
-
+		
+		/*fullscreen: function(){
+			this.$div.css({"width":"100%"});
+		},*/
 	};
 }(jQuery));
