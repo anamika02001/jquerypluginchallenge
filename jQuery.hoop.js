@@ -9,14 +9,19 @@
 		this.$div = $(element);
 		this.$ul = $(this.$div.selector + " ul");
 		this.$li = $(this.$div.selector + " ul li");
-		//this.flickr(this);
+		
 		this.$options = options;
+		if(this.$options.imageSource === "flickr"){
+			this.flickr(this);
+		}
 		this.$maxSize = this.$ul.children().size();
 		this.$width = 600;
 		this.$height = 300;
 		this.$index = 1;
 		this.$isFullscreen = false;
 		this.init();
+		this.initCss();
+		this.setButtonProperties(2);
 		this.initEventHandlers();
 		this.$timer = this.playOnHover();
 
@@ -24,7 +29,9 @@
 	
 	Hoop.defaults = {
 		interval : 2000,
-		rotation : "right"
+		rotation : "right",
+		imageSource : "none",
+		imageTags : "",
 	};
 	
 	Hoop.prototype = {
@@ -36,20 +43,16 @@
 			this.$div.append("<input type='image' class = 'fullscreen' src='images/fullscreen.png' alt='Fullscreen'/>");
 			this.$div.append("<input type='image' class = 'fullscreenExit' src='images/fullscreenExit.png' alt='FullscreenExit'/>");
 			this.$div.append("<div class='progressBar'></div>");
-			
-			
+			if(this.$options.imageSource === "none"){
+				$(this.$div.selector + " div.progressBar").progressbar({
+					max: this.$maxSize,
+					value: this.$index
+				});
+			}
 			$(this.$div.selector + " input.play").hide();
-			$(this.$div.selector + " div.progressBar").progressbar({
-				max: this.$maxSize,
-				value: this.$index
-			});
-			this.initCss();
-			
 		},
 		
 		initCss: function(){
-		
-
 			if($(window).width() >= 600)
 			{	
 				this.$width = "600";				
@@ -60,8 +63,6 @@
 				this.$width = 0.949 * $(window).width();
 				this.$height = 0.5 * this.$width;
 			}
-			
-			
 			this.$div.css({
 				"position":"relative",
 				"width": this.$width + "px",
@@ -72,7 +73,7 @@
 			this.$ul.css({
 				"position" : "absolute",
 				"list-style-type": "none",
-				"width": "9999px",
+				"width": this.$width*this.$height*this.$maxSize + "px",
 				"float" : "left",
 				"margin": "0px",
 				"padding": "0px",
@@ -89,7 +90,7 @@
 				"padding": "0px"
 			});
 
-			this.setButtonProperties(2);
+			
 			
 		},
 		
@@ -168,8 +169,11 @@
 			this.$div.hover($.proxy(this.pauseOnHover,this), $.proxy(this.playOnHover,this));
 			$(window).resize($.proxy(this.initCss, scope));
 			$(window).load($.proxy(function(){
-			this.getOriginalSize();
-			this.setChildProperties();
+				if(this.$options.imageSource === "flickr"){
+					this.flickrSetProperties();
+				}
+				this.getOriginalSize();
+				this.setChildProperties();
 			}, scope));
 			$(this.$div.selector + " input.next").click($.proxy(this.next, this));
 			$(this.$div.selector + " input.previous").click($.proxy(this.previous, this));
@@ -178,6 +182,15 @@
 			$(this.$div.selector + " input.play").click($.proxy(this.playOnButton,this));
 			$(this.$div.selector + " input.fullscreen").click($.proxy(this.fullscreen,this));
 			$(this.$div.selector + " input.fullscreenExit").click($.proxy(this.fullscreenExit,this));
+		},
+		flickrSetProperties: function(){
+			this.$li = $(this.$div.selector + " ul li");
+			this.$maxSize = this.$ul.children().size();
+			$(this.$div.selector + " div.progressBar").progressbar({
+				max: this.$maxSize,
+				value: this.$index
+			});
+			this.initCss();
 		},
 		getOriginalSize : function(){
 			for(i = 0; i< this.$maxSize; i++){
@@ -340,8 +353,6 @@
 			this.setButtonProperties(1500);
 			this.setChildProperties();
 			this.$isFullscreen = true;
-			//this.setCssForChild(0);
-			
 			$(this.$div.selector + " input.fullscreen").hide();
 			$(this.$div.selector + " input.fullscreenExit").show();	
 			if(this.$options.rotation === "left"){
@@ -363,7 +374,6 @@
 			this.$isFullscreen = false;
 			$(this.$div.selector + " input.fullscreen").show();
 			$(this.$div.selector + " input.fullscreenExit").hide();	
-			//this.setCssForChild(0);
 			if(this.$options.rotation === "left"){
 				this.$index = 0;
 			}else{
@@ -373,20 +383,19 @@
 			
 		},
 		
-	/*	flickr: function(scope){
-			var URL = "http://api.flickr.com/services/feeds/photos_public.gne";
+		flickr: function(scope){
+			var URL = "http://ycpi.api.flickr.com/services/feeds/photos_public.gne";
 			var jsonFormat = "&format=json&jsoncallback=?";
 			var jURL = URL + "?" + jsonFormat;
-			
-			$.getJSON(jURL,{tags: "hello",tagmode: "any"},function(data) {
+			console.log(jURL);
+			$.getJSON(jURL,{tags: scope.$options.imageTags},function(data) {
 				$.each(data.items,function(i,photo) {
     				var photoHTML = '<li><img src="' + photo.media.m + '"/></li>';
     				scope.$ul.append(photoHTML);
 				});
 
 			});
-			
-		},*/
+		},
 	};
 }(jQuery));
 
