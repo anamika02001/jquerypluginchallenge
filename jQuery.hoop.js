@@ -13,6 +13,8 @@
 		this.$options = options;
 		if(this.$options.imageSource === "flickr"){
 			this.flickr(this);
+		}else if(this.$options.imageSource === "instagram"){
+			this.instagram(this);
 		}
 		this.$maxSize = this.$ul.children().size();
 		this.$width = 600;
@@ -23,7 +25,7 @@
 		this.initCss();
 		this.setButtonProperties(2);
 		this.initEventHandlers();
-		this.$timer = this.playOnHover();
+		
 
 	};
 	
@@ -169,12 +171,25 @@
 			this.$div.hover($.proxy(this.pauseOnHover,this), $.proxy(this.playOnHover,this));
 			$(window).resize($.proxy(this.initCss, scope));
 			$(window).load($.proxy(function(){
-				if(this.$options.imageSource === "flickr"){
-					this.flickrSetProperties();
+				if(this.$options.imageSource === "flickr" || this.$options.imageSource === "instagram" ){
+					this.imageSourceProperties();
 				}
 				this.getOriginalSize();
 				this.setChildProperties();
+				
+				if(this.$li.children().eq(0)[0].nodeName === "VIDEO" || this.$li.children().eq(0)[0].nodeName === "video"){
+					this.$li.children().eq(0).on("play",$.proxy(function(){ 
+						this.pauseOnButton();
+						return;
+					},this));
+					this.$li.children().eq(0).on("pause",$.proxy(function(){
+						this.playOnButton();
+					 	return;
+				 	},this));
+				}
+				this.$timer = this.playOnHover();
 			}, scope));
+			
 			$(this.$div.selector + " input.next").click($.proxy(this.next, this));
 			$(this.$div.selector + " input.previous").click($.proxy(this.previous, this));
 			$(this.$div.selector + " input.fullscreen").click($.proxy(this.fullscreen, this));
@@ -183,7 +198,7 @@
 			$(this.$div.selector + " input.fullscreen").click($.proxy(this.fullscreen,this));
 			$(this.$div.selector + " input.fullscreenExit").click($.proxy(this.fullscreenExit,this));
 		},
-		flickrSetProperties: function(){
+		imageSourceProperties: function(){
 			this.$li = $(this.$div.selector + " ul li");
 			this.$maxSize = this.$ul.children().size();
 			$(this.$div.selector + " div.progressBar").progressbar({
@@ -225,11 +240,13 @@
 		},
 		
 		slide: function(direction, callback){
+			var videoIndex;
 			if(direction === "left"){
 				this.$index++;
 				if(this.$index === this.$maxSize + 1){
 					this.$index = 1;
 				}
+				videoIndex = this.$index;
 				$(this.$div.selector + " div.progressBar").progressbar({value: this.$index});
 				this.$ul.animate({"left": -((this.$index -1)* this.$width) + "px"},this.$interval > 1000 ? this.$interval - 1000 : this.$interval);
 				
@@ -239,8 +256,25 @@
 				if(this.$index === 0){
 					this.$index = this.$maxSize;
 				}
+				videoIndex = this.$index-1;
 				$(this.$div.selector + " div.progressBar").progressbar({value: this.$index});
 				this.$ul.animate({"left": (-(this.$index -1) * this.$width) + "px"},this.$interval > 1000 ? this.$interval - 1000 : this.$interval);
+			}
+			if(videoIndex < this.$maxSize){
+				var child = this.$li.children().eq(videoIndex);
+				if(child){
+					if(child[0].nodeName === "VIDEO" || child[0].nodeName === "video"){
+						child.on("play",$.proxy(function(){ 
+							this.pauseOnButton();
+							return;
+						},this));
+				
+						child.on("pause",$.proxy(function(){
+							this.playOnButton();
+					 		return;
+				 		},this));
+					}
+				}
 			}
 			this.setCssForChild(this.$index - 1);
 			if(callback != undefined){
@@ -297,6 +331,7 @@
 		},
 		
 		playOnButton: function(){
+			this.pauseAllVideos();
 			this.$paused = false;
 			$(this.$div.selector + " input.play").hide();
 			$(this.$div.selector + " input.pause").show();
@@ -307,17 +342,33 @@
 		},
 		
 		next: function(){
+			this.pauseAllVideos();
 			this.slide("left");
 		},
 		
 		previous: function(){
+			this.pauseAllVideos();
 			this.slide("right");
+		},
+		
+		pauseAllVideos: function(){
+		
+			for(i = 0; i< this.$maxSize; i++){
+				var child = this.$li.children().eq(i);
+				if(child){
+					if(child[0].nodeName === "VIDEO" || child[0].nodeName === "video"){
+						child[0].pause();
+					}
+				}
+				
+			
+			}
 		},
 		
 		
 		fullscreen: function(){
 			//this.$index = 1;
-			
+			this.pauseAllVideos();
 			this.$div.append("<div class = 'overlay'></>");
 			
 			$(this.$div.selector + " div.overlay").css({
@@ -366,11 +417,13 @@
 		},
 		
 		fullscreenExit: function(){
+			this.pauseAllVideos();
 			$('.overlay').remove();
 			this.$width = 600;
 			this.$height = this.$width/2;
 			this.initCss();
 			this.setChildProperties();
+			this.setButtonProperties(2);
 			this.$isFullscreen = false;
 			$(this.$div.selector + " input.fullscreen").show();
 			$(this.$div.selector + " input.fullscreenExit").hide();	
@@ -387,18 +440,38 @@
 			var URL = "http://ycpi.api.flickr.com/services/feeds/photos_public.gne";
 			var jsonFormat = "&format=json&jsoncallback=?";
 			var jURL = URL + "?" + jsonFormat;
-			console.log(jURL);
+			//console.log(jURL);
 			$.getJSON(jURL,{tags: scope.$options.imageTags},function(data) {
 				$.each(data.items,function(i,photo) {
+					//alert(photo);
     				var photoHTML = '<li><img src="' + photo.media.m + '"/></li>';
     				scope.$ul.append(photoHTML);
 				});
 
 			});
 		},
+		
+		instagram: function(scope){
+			var clientID = scope.$options.clientID;
+			var query = scope.$options.imageTags;
+			var jURL = "https://api.instagram.com/v1/tags/"+query+"/media/recent?client_id="+clientID+"&callback=?"; 
+			$.getJSON( jURL, function(data){
+    			$.each(data.data, function(key,item){
+       				$.each(item, function(instaImage, attributes){
+       					 if(instaImage === "images"){
+       					 	$.each(attributes, function(stdImage, stdAttr){
+       					 		if(stdImage === "standard_resolution"){
+       					 			//console.log(stdAttr.url);
+       					 			var photoHTML = '<li><img src="' + stdAttr.url + '"/></li>';
+    								scope.$ul.append(photoHTML);
+       					 		}
+       					 	});
+       					 }
+       					 
+       				});
+       			});
+
+			});
+		},
 	};
 }(jQuery));
-
-
-
-
