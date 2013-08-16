@@ -1,19 +1,41 @@
+/*
+Author: Anamika Mukherji
+
+Title: Hoop
+
+Description: Hoop is an open source jQuery plugin for timed slide show. 
+The plugin takes an unorderlist of images and creates a timed slideshow. 
+This is an open source plugin. Feel free to use it and modify it.
+jQuery, jQeury-ui and jQuery-mobile are required for this plugin.
+
+Download jQuery from http://jquery.com/
+Download jQuery-ui from http://jqueryui.com/
+Download jQuery-mobile from http://jquerymobile.com/
+
+Documentation: http://www-scf.usc.edu/~mukherji/hoop/Hoop.html
+*/
+
 (function($){
+	/*
+		Plugin Definition
+	*/
 	$.fn.hoop = function(options){
 			return new Hoop($(this), $.extend({}, Hoop.defaults, options));
 	};
 	
 	$.fn.hoop.Constructor = Hoop;
 	
+	/*
+		Constructor definition
+	*/
 	var Hoop = function(element, options){
 		this.$div = $(element);
 		this.$ul = $(this.$div.selector + " ul");
 		this.$li = $(this.$div.selector + " ul li");
-		
 		this.$options = options;
-		if(this.$options.imageSource === "flickr"){
+		if(this.$options.elementSource === "flickr"){
 			this.flickr(this);
-		}else if(this.$options.imageSource === "instagram"){
+		}else if(this.$options.elementSource === "instagram"){
 			this.instagram(this);
 		}
 		this.$maxSize = this.$ul.children().size();
@@ -21,31 +43,41 @@
 		this.$height = 300;
 		this.$index = 1;
 		this.$isFullscreen = false;
+		this.$zIndex = 2;
 		this.init();
 		this.initCss();
-		this.setButtonProperties(2);
+		this.setButtonProperties();
 		this.initEventHandlers();
-		
-
 	};
 	
+	/*
+		Set the default values of each option
+	*/
 	Hoop.defaults = {
 		interval : 2000,
-		rotation : "right",
-		imageSource : "none",
-		imageTags : "",
+		rotation : "left",
+		elementSource : "none",
+		tags : null,
+		clientID : null,
 	};
 	
+	/*
+		Definition of the methods in Hoop
+	*/
 	Hoop.prototype = {
+		/* 
+			The init function appends all the buttons, namely, play, pause, previous, next, fullscreen and fullscreen exit 
+			to the div dom element. It also initializes the progress bar using jQuery-ui.
+		*/ 
 		init: function(){
-			this.$div.append("<input type='image' class = 'previous' src='images/leftArrow.png' alt='Previous'/>");
-			this.$div.append("<input type='image' class = 'next' src='images/rightArrow.png' alt='Next'/>");	
+			this.$div.append("<input type='image' class = 'previous' src='images/previous.png' alt='Previous'/>");
+			this.$div.append("<input type='image' class = 'next' src='images/next.png' alt='Next'/>");	
 			this.$div.append("<input type='image' class = 'pause' src='images/pause.png' alt='Pause'/>");
 			this.$div.append("<input type='image' class = 'play' src='images/play.png' alt='Play'/>");
-			this.$div.append("<input type='image' class = 'fullscreen' src='images/fullscreen.png' alt='Fullscreen'/>");
 			this.$div.append("<input type='image' class = 'fullscreenExit' src='images/fullscreenExit.png' alt='FullscreenExit'/>");
+						this.$div.append("<input type='image' class = 'fullscreen' src='images/fullscreen.png' alt='Fullscreen'/>");
 			this.$div.append("<div class='progressBar'></div>");
-			if(this.$options.imageSource === "none"){
+			if(this.$options.elementSource === "none"){
 				$(this.$div.selector + " div.progressBar").progressbar({
 					max: this.$maxSize,
 					value: this.$index
@@ -54,12 +86,17 @@
 			$(this.$div.selector + " input.play").hide();
 		},
 		
+		/*
+			initCss initializes the Css for the div, ul and all the li elements. It also makes the plugin responsive by resizing the
+			elements according to the width and height of the window.
+		*/
 		initCss: function(){
-			if($(window).width() >= 600)
-			{	
+			if($(window).width() >= 600 && this.$isFullscreen === false){	
 				this.$width = "600";				
 				this.$height = "300";
-				
+			}else if($(window).width() >= 600 && this.$isFullscreen === true){	
+				this.$width = $(document).width()-50;
+				this.$height = this.$width/2;
 			}
 			if($(window).width() < 600){
 				this.$width = 0.949 * $(window).width();
@@ -71,6 +108,7 @@
 				"height": this.$height + "px",
 				"overflow": "hidden",
 				"border" : "2px solid",
+				"z-index" : this.$zIndex,
 			});
 			this.$ul.css({
 				"position" : "absolute",
@@ -79,9 +117,8 @@
 				"float" : "left",
 				"margin": "0px",
 				"padding": "0px",
-				"z-index" : "1",
+				"z-index" : this.$zIndex,
 			});
-			
 			this.$li.css({
 				"position":"relative",
 				"float":"left",
@@ -89,15 +126,16 @@
 				"height": this.$height,
 				"text-align" : "center",
 				"margin": "0px",
-				"padding": "0px"
+				"padding": "0px",
+				"z-index" : this.$zIndex,
 			});
-
-			
-			
 		},
 		
-		setButtonProperties: function(zIndex){
-			buttonSize = 0.05 * this.$width;
+		/*
+			setButtonProperties sets the Css of the buttons and the progress bar.
+		*/
+		setButtonProperties: function(){
+			buttonSize = 0.07 * this.$width;
 			$(this.$div.selector + " input.previous").css({
 				"position": "absolute",
 				"left": "0px",
@@ -105,7 +143,7 @@
 				"top": (this.$height/2) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
-				"z-index": zIndex,
+				"z-index": this.$zIndex + 2,
 			});	
 			
 			$(this.$div.selector + " input.next").css({
@@ -115,9 +153,8 @@
 				"left": (this.$width - buttonSize) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
-				"z-index": zIndex,
+				"z-index": this.$zIndex + 2,
 			});	
-				
 			$(this.$div.selector + " input.pause").css({
 				"position": "absolute",
 				"float": "left",
@@ -125,9 +162,8 @@
 				"left": (this.$width/2) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
-				"z-index": zIndex,
+				"z-index": this.$zIndex + 2,
 			});	
-			
 			$(this.$div.selector + " input.play").css({
 				"position": "absolute",
 				"float": "left",
@@ -135,70 +171,80 @@
 				"left": (this.$width/2) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
-				"z-index": zIndex,
+				"z-index": this.$zIndex + 2,
 			});	
-			
 			$(this.$div.selector + " div.progressBar").css({
 				"position": "absolute",
-				"top": (this.$height*0.87 ) + "px",
-				"z-index": zIndex,
-				"height": "5px",
+				"top": (this.$height - 5 ) + "px",
+				"z-index": this.$zIndex,
+				"height": "3px",
 				"width" : this.$width + "px",
 			});
-			
 			$(this.$div.selector + " input.fullscreen").css({
 				"position": "absolute",
-				"top": (this.$height - buttonSize) + "px",
+				"top": (this.$height - buttonSize - buttonSize/4) + "px",
 				"left": (this.$width - buttonSize) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
-				"z-index": zIndex,
+				"z-index": this.$zIndex + 2,
 			});
 			$(this.$div.selector + " input.fullscreenExit").css({
 				"position": "absolute",
-				"top": (this.$height - buttonSize) + "px",
+				"top": (this.$height - buttonSize - buttonSize/4) + "px",
 				"left": (this.$width - buttonSize) + "px",
 				"width": buttonSize + "px",
 				"height": buttonSize + "px",
-				"z-index": zIndex,
+				"z-index": this.$zIndex + 2,
 			});
-			
 		},
 		
-		
+		/*
+			initEventHandlers binds all the events with their respective event handlers.
+		*/
 		initEventHandlers: function(){
 			var scope = this;
-			this.$div.hover($.proxy(this.pauseOnHover,this), $.proxy(this.playOnHover,this));
-			$(window).resize($.proxy(this.initCss, scope));
+			this.$div.mouseover($.proxy(this.pauseOnMouseOver,this));
+			this.$div.mouseout($.proxy(this.playOnMouseOut,this));
+			$(window).resize($.proxy(function(){
+				this.initCss();
+				this.setButtonProperties();
+			}, scope));
+			this.$div.on("swipeleft",$.proxy(this.next, scope));
+			this.$div.on("swiperight",$.proxy(this.previous, scope));
 			$(window).load($.proxy(function(){
-				if(this.$options.imageSource === "flickr" || this.$options.imageSource === "instagram" ){
-					this.imageSourceProperties();
+				if(this.$options.elementSource === "flickr" || this.$options.elementSource === "instagram" ){
+					this.setPropertiesImageSource();
 				}
-				this.getOriginalSize();
-				this.setChildProperties();
-				
-				if(this.$li.children().eq(0)[0].nodeName === "VIDEO" || this.$li.children().eq(0)[0].nodeName === "video"){
-					this.$li.children().eq(0).on("play",$.proxy(function(){ 
-						this.pauseOnButton();
+				this.getNaturalSize();
+				this.setListChildProperties();
+				var video = this.$li.children().eq(0);
+				if(video && video[0] && video[0].nodeName && video[0].nodeName.toUpperCase() === "VIDEO" ){
+					video.on("play",$.proxy(function(){ 
+						this.pauseOnButtonClick();
 						return;
 					},this));
-					this.$li.children().eq(0).on("pause",$.proxy(function(){
-						this.playOnButton();
+					video.on("pause",$.proxy(function(){
+						this.playOnButtonClick();
 					 	return;
 				 	},this));
 				}
-				this.$timer = this.playOnHover();
+				this.pauseAllVideos();
+				this.$timer = this.playOnMouseOut();
+				
 			}, scope));
-			
 			$(this.$div.selector + " input.next").click($.proxy(this.next, this));
 			$(this.$div.selector + " input.previous").click($.proxy(this.previous, this));
 			$(this.$div.selector + " input.fullscreen").click($.proxy(this.fullscreen, this));
-			$(this.$div.selector + " input.pause").click($.proxy(this.pauseOnButton,this));
-			$(this.$div.selector + " input.play").click($.proxy(this.playOnButton,this));
-			$(this.$div.selector + " input.fullscreen").click($.proxy(this.fullscreen,this));
+			$(this.$div.selector + " input.pause").click($.proxy(this.pauseOnButtonClick,this));
+			$(this.$div.selector + " input.play").click($.proxy(this.playOnButtonClick,this));
 			$(this.$div.selector + " input.fullscreenExit").click($.proxy(this.fullscreenExit,this));
 		},
-		imageSourceProperties: function(){
+		
+		/*
+			setPropertiesImageSource resets the properties of div, ul, li , progressbar, etc when an ImageSource like Instagram or 
+			Flickr is available.
+		*/
+		setPropertiesImageSource: function(){
 			this.$li = $(this.$div.selector + " ul li");
 			this.$maxSize = this.$ul.children().size();
 			$(this.$div.selector + " div.progressBar").progressbar({
@@ -207,7 +253,11 @@
 			});
 			this.initCss();
 		},
-		getOriginalSize : function(){
+		
+		/*
+			getNaturalSize preserves the natural height and width of each child element of each li in ul
+		*/
+		getNaturalSize : function(){
 			for(i = 0; i< this.$maxSize; i++){
 				var child = this.$li.children().eq(i);
 				child.attr("naturalHeight",child.height());
@@ -216,29 +266,73 @@
 			
 		},
 		
-		setChildProperties: function(){
+		setListChildProperties: function(){
 			for(i = 0; i< this.$maxSize; i++){
-				this.setCssForChild(i);
+				this.setCssForElement(i);
 			}
-		},
-		setCssForChild : function(child){
-			var height = parseInt(this.$li.children().eq(child).attr("naturalHeight"),10);
-			var width = parseInt(this.$li.children().eq(child).attr("naturalWidth"),10);
-			if(height > this.$height || width > this.$width ){
-				if(width > height){
-					height = height*this.$width/width;
-					width = this.$width;
-					
-				}else {
-					width = this.$height*width/height;
-					height =  this.$height;
-					
-				}
-			}
-			var topMargin = ((this.$height > height)?((this.$height - height)/2): 0);
-			this.$li.children().eq(child).css({width: width + "px", height: height + "px", "margin-top" : topMargin + "px" });
 		},
 		
+		/*
+			setCssForElement sets the width and height of the elements to be displayed(images/videos) according to the window width
+			and height. It maintains the ratio of width to height without stretching or cropping the elements.
+		*/
+		setCssForElement : function(indexOfChild){
+			var child = this.$li.children().eq(indexOfChild);
+			
+			if(child && child[0] && child[0].nodeName && child[0].nodeName.toUpperCase() === "VIDEO"){
+		        var height = child[0].videoHeight;
+		        var width = child[0].videoWidth;
+		        if(height > this.$height || width > this.$width ){
+					if(width > height){
+						height = height*this.$width/width;
+						width = this.$width;
+						if(height > this.$height){
+							width = this.$height*width/height;
+							height = this.$height;
+						}
+					}else {
+						width = this.$height*width/height;
+						height =  this.$height;
+						if(width > this.$width){
+							height = this.$width*height/width;
+							width = this.$width;
+						}
+					}
+				}
+				child[0].width = width;
+				child[0].height = height;
+				var topMargin = ((this.$height > height)?((this.$height - height)/2): 0);
+				child.css({"margin-top" : topMargin + "px"});
+		    }else{
+				var height = parseInt(child.attr("naturalHeight"),10);
+				var width = parseInt(child.attr("naturalWidth"),10);
+			
+				if(height > this.$height || width > this.$width ){
+					if(width > height){
+						height = height*this.$width/width;
+						width = this.$width;
+						if(height > this.$height){
+							width = this.$height*width/height;
+							height = this.$height;
+						}
+					}else {
+						width = this.$height*width/height;
+						height =  this.$height;
+						if(width > this.$width){
+							height = this.$width*height/width;
+							width = this.$width;
+						}
+					}
+				}
+				var topMargin = ((this.$height > height)?((this.$height - height)/2): 0);
+				child.css({width: width + "px", height: height + "px", "margin-top" : topMargin + "px" });
+			}
+		},
+		
+		/*
+			slide function slides the elements according to the direction and interval. It also fires a callback function after 
+			every slide transition.
+		*/
 		slide: function(direction, callback){
 			var videoIndex;
 			if(direction === "left"){
@@ -249,8 +343,6 @@
 				videoIndex = this.$index;
 				$(this.$div.selector + " div.progressBar").progressbar({value: this.$index});
 				this.$ul.animate({"left": -((this.$index -1)* this.$width) + "px"},this.$interval > 1000 ? this.$interval - 1000 : this.$interval);
-				
-				
 			}else{
 				this.$index--;
 				if(this.$index === 0){
@@ -261,28 +353,28 @@
 				this.$ul.animate({"left": (-(this.$index -1) * this.$width) + "px"},this.$interval > 1000 ? this.$interval - 1000 : this.$interval);
 			}
 			if(videoIndex < this.$maxSize){
-				var child = this.$li.children().eq(videoIndex);
-				if(child){
-					if(child[0].nodeName === "VIDEO" || child[0].nodeName === "video"){
-						child.on("play",$.proxy(function(){ 
-							this.pauseOnButton();
-							return;
-						},this));
-				
-						child.on("pause",$.proxy(function(){
-							this.playOnButton();
-					 		return;
-				 		},this));
-					}
+				var video = this.$li.children().eq(videoIndex);
+				if(video && video[0] && video[0].nodeName && video[0].nodeName.toUpperCase() === "VIDEO"){
+					video.on("play",$.proxy(function(){ 
+						this.pauseOnButtonClick();
+						return;
+					},this));
+					video.on("pause",$.proxy(function(){
+						this.playOnButtonClick();
+					 	return;
+				 	},this));
 				}
 			}
-			this.setCssForChild(this.$index - 1);
+			this.setCssForElement(this.$index - 1);
 			if(callback != undefined){
 				callback();
 			}
 		},
 		
-		pauseOnHover: function(){
+		/*
+			pauseOnMouseOver pauses the slideshow when the mouse is over the element.
+		*/
+		pauseOnMouseOver: function(){
 			this.$hovered = true;
 			this.$timer = clearInterval(this.$timer);
 			if(this.$paused === true){
@@ -303,10 +395,12 @@
 			$(this.$div.selector + " input.previous").show();
 			$(this.$div.selector + " div.progressBar").show();
 			return this.$timer;
-			
 		},
 		
-		playOnHover: function(){
+		/*
+			playOnMouseOut continues the slideshow after the mouse pointer is hovered out of the ul area.
+		*/
+		playOnMouseOut: function(){
 			$(this.$div.selector + " input.next").hide();
 			$(this.$div.selector + " input.previous").hide();
 			$(this.$div.selector + " input.pause").hide();
@@ -315,6 +409,7 @@
 			$(this.$div.selector + " input.fullscreenExit").hide();
 			$(this.$div.selector + " input.fullscreen").hide();
 			if(this.$paused !== true) {
+				this.$timer = clearInterval(this.$timer);
 				this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
 				this.$hovered = false;
 				return this.$timer;
@@ -322,7 +417,10 @@
 			return undefined;
 		},
 		
-		pauseOnButton: function(){
+		/*
+			pauseOnButtonClick pauses the slideshow .
+		*/
+		pauseOnButtonClick: function(){
 			this.$paused = true;
 			$(this.$div.selector + " input.pause").hide();
 			$(this.$div.selector + " input.play").show();
@@ -330,48 +428,56 @@
 			return this.$timer;
 		},
 		
-		playOnButton: function(){
+		/*
+			playOnButtonClick resumes the slideshow.
+		*/
+		playOnButtonClick: function(){
 			this.pauseAllVideos();
 			this.$paused = false;
 			$(this.$div.selector + " input.play").hide();
 			$(this.$div.selector + " input.pause").show();
 			if(this.$hovered !== true){
+				this.$timer = clearInterval(this.$timer);
 				this.$timer = setInterval($.proxy(function(){this.slide(this.$options.rotation, this.$options.slide)}, this), this.$options.interval);
 				return this.$timer;
 			}
 		},
 		
+		/*
+			Moves to the next element in the queue.
+		*/
 		next: function(){
 			this.pauseAllVideos();
 			this.slide("left");
 		},
 		
+		/*
+			Moves to the previous element in the queue
+		*/
 		previous: function(){
 			this.pauseAllVideos();
 			this.slide("right");
 		},
 		
+		/*
+			pauses all the videos in the ul
+		*/
 		pauseAllVideos: function(){
-		
 			for(i = 0; i< this.$maxSize; i++){
-				var child = this.$li.children().eq(i);
-				if(child){
-					if(child[0].nodeName === "VIDEO" || child[0].nodeName === "video"){
-						child[0].pause();
-					}
+				var video = this.$li.children().eq(i);
+				if(video && video[0] && video[0].nodeName && video[0].nodeName.toUpperCase() === "VIDEO"){
+					video[0].pause();
 				}
-				
-			
 			}
 		},
 		
-		
+		/*
+			fullscreen makes the slideshow fullscreen by adjusting div and all its child elements according to the window width and height
+		*/
 		fullscreen: function(){
-			//this.$index = 1;
 			this.pauseAllVideos();
-			this.$div.append("<div class = 'overlay'></>");
-			
-			$(this.$div.selector + " div.overlay").css({
+			this.$div.wrap("<div class = 'overlay'></>");
+			$("div.overlay").css({
 				width :"100%",
 				height : "100%",
 				background: "black",
@@ -380,29 +486,25 @@
 				bottom : 0,
 				right: 0,
 				left : 0,
-				opacity: 0.9,
-				"z-index": "100",
+				opacity: 1,
+				"z-index": "1000",
 			});
-			
 			this.$width = $(document).width()-50;
 			this.$height = this.$width/2;
-			
-			
-			
-			
+			this.$zIndex = 1500;
 			this.$div.css({
 				"top" : "0px",
-				"z-index" : "1500",
+				"z-index" : this.$zIndex,
 				"width": this.$width + "px",
 				"height": this.$height + "px",
 			});
-			this.$ul.css({"z-index":"1500",});
+			this.$ul.css({"z-index":this.$zIndex,});
 			this.$li.css({width: this.$width,
 				height: this.$height,
 				background: "white",
 			});
-			this.setButtonProperties(1500);
-			this.setChildProperties();
+			this.setButtonProperties();
+			this.setListChildProperties();
 			this.$isFullscreen = true;
 			$(this.$div.selector + " input.fullscreen").hide();
 			$(this.$div.selector + " input.fullscreenExit").show();	
@@ -411,20 +513,23 @@
 			}else{
 				this.$index = 2;
 			}
-			
 			this.slide(this.$options.rotation);
 			
 		},
 		
+		/*
+			fullscreenExit exits the full screen mode.
+		*/
 		fullscreenExit: function(){
 			this.pauseAllVideos();
-			$('.overlay').remove();
+			this.$isFullscreen = false;
+			this.$div.unwrap();
 			this.$width = 600;
 			this.$height = this.$width/2;
+			this.$zIndex = 2;
 			this.initCss();
-			this.setChildProperties();
-			this.setButtonProperties(2);
-			this.$isFullscreen = false;
+			this.setListChildProperties();
+			this.setButtonProperties();
 			$(this.$div.selector + " input.fullscreen").show();
 			$(this.$div.selector + " input.fullscreenExit").hide();	
 			if(this.$options.rotation === "left"){
@@ -433,44 +538,42 @@
 				this.$index = 2;
 			}
 			this.slide(this.$options.rotation);
-			
 		},
 		
+		/*
+			Pulls top 20 images from public feeds of Flickr depending upon the tag specified.
+		*/
 		flickr: function(scope){
-			var URL = "http://ycpi.api.flickr.com/services/feeds/photos_public.gne";
-			var jsonFormat = "&format=json&jsoncallback=?";
-			var jURL = URL + "?" + jsonFormat;
-			//console.log(jURL);
-			$.getJSON(jURL,{tags: scope.$options.imageTags},function(data) {
+			var url = "http://ycpi.api.flickr.com/services/feeds/photos_public.gne?&format=json&jsoncallback=?";
+			$.getJSON(url,{tags: scope.$options.tags},function(data) {
 				$.each(data.items,function(i,photo) {
-					//alert(photo);
     				var photoHTML = '<li><img src="' + photo.media.m + '"/></li>';
     				scope.$ul.append(photoHTML);
 				});
-
 			});
 		},
 		
+		/*
+			Pulls recent images from Instagram depending upon the tags specified. 
+		*/
 		instagram: function(scope){
-			var clientID = scope.$options.clientID;
-			var query = scope.$options.imageTags;
-			var jURL = "https://api.instagram.com/v1/tags/"+query+"/media/recent?client_id="+clientID+"&callback=?"; 
-			$.getJSON( jURL, function(data){
+			if(scope.$options.tags === ""){
+				var url = "https://api.instagram.com/v1/media/popular?client_id="+scope.$options.clientID+"&callback=?"; 
+			}else {
+				var url = "https://api.instagram.com/v1/tags/"+scope.$options.tags+"/media/recent?client_id="+scope.$options.clientID+"&callback=?"; 
+			}
+			$.getJSON( url, function(data){
     			$.each(data.data, function(key,item){
        				$.each(item, function(instaImage, attributes){
        					 if(instaImage === "images"){
        					 	$.each(attributes, function(stdImage, stdAttr){
        					 		if(stdImage === "standard_resolution"){
-       					 			//console.log(stdAttr.url);
-       					 			var photoHTML = '<li><img src="' + stdAttr.url + '"/></li>';
-    								scope.$ul.append(photoHTML);
+    								scope.$ul.append('<li><img src="' + stdAttr.url + '"/></li>');
        					 		}
        					 	});
        					 }
-       					 
        				});
        			});
-
 			});
 		},
 	};
